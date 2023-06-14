@@ -1,0 +1,74 @@
+version: '3'
+
+services:
+
+  ii2_web:
+    container_name: ii2_web
+    build:
+      context: .
+      dockerfile: Dockerfile_web
+    restart: always
+    ports:
+      - "81:80"
+    networks:
+      - ii2_network
+    depends_on:
+      - ii2_db
+    volumes:
+      - ./app_php:/var/www/html/
+    environment:
+      - MYSQL_HOST=ii2_db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=PASSWORD
+      - MYSQL_DATABASE=USER
+
+  ii2_phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ii2_phpmyadmin
+    ports:
+      - "8080:80"
+    restart: always
+    networks:
+      - ii2_network
+    depends_on:
+      - ii2_db
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=ii2_db
+      - PMA_PORT=3306
+      - PMA_ABSOLUTE_URI=http://localhost:8080/
+      - MYSQL_ROOT_PASSWORD=PASSWORD
+
+  ii2_db:
+    image: mariadb
+    container_name: ii2_db
+    networks:
+      - ii2_network
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=PASSWORD
+      - MYSQL_DATABASE=ii2prod
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  ii2_python:
+    container_name: ii2_python
+    build:
+      context: .      
+      dockerfile: Dockerfile_python
+    networks:
+      - ii2_network
+    restart: always
+    command: tail -f /dev/null
+    depends_on:
+      - ii2_db
+    volumes:
+      - ./app_python:/app
+    working_dir: /app
+    
+volumes:
+  mariadb_data:
+    external: true
+
+networks:
+  ii2_network:
